@@ -1,0 +1,8 @@
+obj/
+Debug/
+*.elf
+*.hex
+*.lst
+*.map
+*.o
+*.d
