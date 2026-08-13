@@ -8,20 +8,12 @@
  * Chức năng: Hiển thị thời gian thực (RTC)
  *============================================================================*/
 
-void Disp_RTC_Enter(void) {
+void Disp_RTC_Enter(u8 hour, u8 minute) {
     /* TODO: Khởi tạo màn hình, chuẩn bị đọc RTC */
     if(DRV_Button_IsLocked()) {
         GPIO_ResetBits(GPIOA, LED7_PIN);
     }
-    u8 hour = DS1307_GetHour();
-    u8 minute = DS1307_GetMinute();
     DRV_Display_Time(hour, minute);
-    PRINT("[RTC] Display RTC time: %02d:%02d\r\n", hour, minute);
-}
-
-void Disp_RTC_Run(void) {
-    /* TODO: Đọc RTC định kỳ và hiển thị lên màn hình (HH:MM) */
-
 }
 
 void Disp_RTC_Exit(void) {

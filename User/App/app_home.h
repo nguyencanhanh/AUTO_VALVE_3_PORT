@@ -30,4 +30,24 @@ void APP_Home_Run(void);
  */
 void APP_Home_Exit(void);
 
+/**
+ * @brief Start manual wash cycle.
+ *        Triggered by BTN_SELECT when not in settings mode.
+ *        Enters backwash cycle same as scheduled wash.
+ */
+void APP_Home_StartManualWash(void);
+
+/**
+ * @brief Check if currently in wash mode (BACKWASHING or RINSING).
+ * @return 1 if washing, 0 otherwise.
+ */
+u8 APP_Home_IsWashing(void);
+
+/**
+ * @brief Skip current wash step and advance to next.
+ *        Stops motor/timer, forces transition to next step.
+ *        Used by BTN_SELECT during manual wash.
+ */
+void APP_Home_ManualNextStep(void);
+
 #endif /* __APP_HOME_H */

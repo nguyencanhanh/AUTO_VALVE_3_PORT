@@ -1,19 +1,29 @@
+/*****************************************************************************
+ * File Name   : disp_schedule.c
+ * Layer       : App - Display
+ * Description : Hien thi thoi gian chu ky suc rua tren man hinh Home
+ *               Chi hien thi, khong chinh sua (viec chinh sua nam trong
+ *               Settings/set_wash_schedule.c)
+ *****************************************************************************/
 #include "disp_schedule.h"
 #include "Drivers/drv_display.h"
+#include "App/Data/data_store.h"
+#include "debug.h"
 
 /*============================================================================
- * Chức năng: Thời gian chạy chu trình sục rửa (Scheduled Washing Time)
- * (Là 1 thời gian cố định trong ngày setup được)
+ * Disp_Schedule_Enter - Hien thi thoi gian suc rua hien tai
  *============================================================================*/
-
-void Disp_Schedule_Enter(void) {
-    /* TODO: Khởi tạo màn hình, hiển thị thời gian setup hiện tại */
+void Disp_Schedule_Enter(void)
+{
+    AppSettings_t *cfg = Data_GetSettings();
+    DRV_Display_Time(cfg->wash_sched_hour, cfg->wash_sched_min);
+    PRINT("[SCHEDULE] Display: %02d:%02d\r\n", cfg->wash_sched_hour, cfg->wash_sched_min);
 }
 
-void Disp_Schedule_Run(void) {
-    /* TODO: Xử lý nút bấm UP/DOWN để cài đặt thời gian sục rửa */
-}
-
-void Disp_Schedule_Exit(void) {
-    /* TODO: Lưu thời gian cài đặt vào EEPROM và dọn dẹp */
+/*============================================================================
+ * Disp_Schedule_Exit - Don dep
+ *============================================================================*/
+void Disp_Schedule_Exit(void)
+{
+    DRV_Display_Blank();
 }

@@ -32,10 +32,12 @@
 #include "BSP/bsp_tim.h"
 #include "BSP/bsp_i2c.h"
 #include "Drivers/drv_display.h"
-// #include "Drivers/drv_buzzer.h"
-#include "Drivers/drv_ds1307.h"
+#include "Drivers/drv_button.h"
+#include "Drivers/drv_pos_sensor.h"
 #include "App/app_boot.h"
 #include "App/app_home.h"
+#include "App/app_settings.h"
+#include "App/app_error.h"
 
 /*============================================================================
  * GLOBAL VARIABLES (dung common voi ch32x035_it.c)
@@ -66,9 +68,6 @@ static void FlowSensor_EXTI_Init(void)
     NVIC_Init(&nvic);
 }
 
-/*============================================================================
- * System_Init - Initialize entire hardware
- *============================================================================*/
 static void System_Init(void)
 {
     /* 1. Core clock + debug UART */
@@ -102,6 +101,10 @@ static void System_Init(void)
     /* 6. Hardware I2C1 */
     BSP_I2C_Init();
     PRINT("[INIT] BSP I2C1  : OK\r\n");
+
+    /* 7. Initialize TIM3 for 1-minute timer */
+    BSP_TIM3_Init_1Minute();
+    PRINT("[INIT] BSP TIM3  : OK\r\n");
 
     /*
      * TODO: Them cac driver after co source:

@@ -45,11 +45,14 @@ void BSP_GPIO_Init(void) {
   g.GPIO_Mode = GPIO_Mode_IPU;
   GPIO_Init(BTN_MENU_PORT, &g);
 
-  /* Sensors: PA6 (flow) + PA7 (position) → Input Pull-Up */
-  g.GPIO_Pin = FLOW_PIN | POS_SENSOR_PIN;
+  /* Sensors: PA6 (flow) → Input Pull-Up */
+  g.GPIO_Pin = FLOW_PIN;
   g.GPIO_Mode = GPIO_Mode_IPU;
   GPIO_Init(GPIOA, &g);
 
+  g.GPIO_Pin = POS_SENSOR_PIN;
+  g.GPIO_Mode = GPIO_Mode_IPU;
+  GPIO_Init(POS_SENSOR_PORT, &g);
   /* ----------------------------------------------------------------
    * GPIOB - 7-Segment Segments + Digit select + Buzzer
    * ---------------------------------------------------------------- */

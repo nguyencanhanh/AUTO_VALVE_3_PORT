@@ -133,7 +133,8 @@
 							"${project}/User/App",
 							"${project}/User/BSP",
 							"${project}/User/Drivers",
-							"${project}/User/App/Display"
+							"${project}/User/App/Display",
+							"${project}/User/App/Data"
 						],
 						"include_system_paths": [],
 						"include_files": []

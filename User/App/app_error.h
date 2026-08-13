@@ -3,61 +3,79 @@
  * Layer       : App
  * Description : Error Handler - Display and manage system error states.
  *
- * Error codes (bitmask):
- *   ERR_VALVE_STUCK   0x01  - Valve did not reach position within timeout
- *   ERR_FLOW_OVERRUN  0x02  - Flow volume exceeded safe limit
- *   ERR_RTC_FAIL      0x04  - RTC DS1307 not responding on I2C
- *   ERR_EEPROM_FAIL   0x08  - EEPROM AT24C64 not responding on I2C
- *   ERR_NO_POSITION   0x10  - Position sensor not detected
+ * Error codes (bitmask, hien thi "E-X" tren 7-segment):
+ *   ERR_SENSOR      0x01  (E1) - Cam bien vi tri loi
+ *   ERR_MOTOR       0x02  (E2) - Motor loi (ket hoac mat tin hieu)
+ *   ERR_VALVE_SLOW  0x04  (E3) - Van bi ket / motor chay qua cham (timeout)
+ *   ERR_EEPROM      0x08  (E4) - EEPROM AT24C64 loi
+ *
+ * Hien thi: "E-X" voi X = ma loi (1-4), nhap nhay lien tuc
+ * Buzzer:   BUZ_ALARM keu lien tuc
+ * Button:   BTN_SELECT → thu xoa loi va retry
+ *           BTN_MENU   → tat buzzer, giu hien thi loi
  *****************************************************************************/
 #ifndef __APP_ERROR_H
 #define __APP_ERROR_H
 
 #include "BSP/bsp_config.h"
 
-/* Error code bitmask */
-#define ERR_NONE          0x00u
-#define ERR_VALVE_STUCK   0x01u
-#define ERR_FLOW_OVERRUN  0x02u
-#define ERR_RTC_FAIL      0x04u
-#define ERR_EEPROM_FAIL   0x08u
-#define ERR_NO_POSITION   0x10u
+/* ---- Error code bitmask ---- */
+#define ERR_NONE         0x00u
+#define ERR_SENSOR       0x01u   /* E1: Cam bien vi tri loi */
+#define ERR_MOTOR        0x02u   /* E2: Motor loi */
+#define ERR_VALVE_SLOW   0x04u   /* E3: Van bi ket / motor qua cham */
+#define ERR_EEPROM       0x08u   /* E4: EEPROM AT24C64 loi */
+
+/* ---- Error number for display (1-4) ---- */
+#define ERR_NUM_SENSOR     1
+#define ERR_NUM_MOTOR      2
+#define ERR_NUM_VALVE_SLOW 3
+#define ERR_NUM_EEPROM     4
 
 /**
- * @brief Enter error display mode.
- *        Display "E-XX" on 7-seg. Play alarm buzzer.
- * @param error_flags Bitmask of active error codes
- */
-void APP_Error_Enter(uint8_t error_flags);
-
-/**
- * @brief Run error mode.
- *        - Keep displaying error code
- *        - BTN_SELECT → attempt to clear error and retry
- *        - BTN_MENU   → suppress alarm, return to home (error remains logged)
- */
-void APP_Error_Run(void);
-
-/**
- * @brief Exit error mode.
- *        Stop alarm buzzer.
- */
-void APP_Error_Exit(void);
-
-/**
- * @brief Set a new error flag (can be called from any module).
+ * @brief Set a new error flag (co the goi tu bat ky module nao).
+ *        Tu dong chuyen sang error screen neu dang o home.
+ * @param flag  Bitmask loi (ERR_SENSOR, ERR_MOTOR, ...)
  */
 void APP_Error_Set(uint8_t flag);
 
 /**
  * @brief Clear an error flag.
+ * @param flag  Bitmask loi can xoa
  */
 void APP_Error_Clear(uint8_t flag);
 
 /**
  * @brief Check if any error is active.
- * @return 1 if error active, 0 if none
+ * @return 1 neu co loi, 0 neu khong
  */
 uint8_t APP_Error_HasError(void);
+
+/**
+ * @brief Get current error flags bitmask.
+ * @return Bitmask cua tat ca loi dang active
+ */
+uint8_t APP_Error_GetFlags(void);
+
+/**
+ * @brief Enter error display mode.
+ *        Hien thi "E-X" tren 7-seg, bat buzzer alarm.
+ */
+void APP_Error_Enter(void);
+
+/**
+ * @brief Run error mode (goi trong main loop).
+ *        - Hien thi ma loi nhap nhay
+ *        - Neu nhieu loi, luan phien hien thi moi 2 giay
+ *        - BTN_SELECT → xoa loi hien tai, thu retry
+ *        - BTN_MENU   → tat buzzer (loi van con)
+ */
+void APP_Error_Run(void);
+
+/**
+ * @brief Exit error mode.
+ *        Tat buzzer, xoa blink.
+ */
+void APP_Error_Exit(void);
 
 #endif /* __APP_ERROR_H */

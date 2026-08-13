@@ -26,6 +26,8 @@ void NMI_Handler(void)          __attribute__((interrupt("WCH-Interrupt-fast")))
 void HardFault_Handler(void)    __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM2_UP_IRQHandler(void)   __attribute__((interrupt("WCH-Interrupt-fast")));
 void EXTI7_0_IRQHandler(void)   __attribute__((interrupt("WCH-Interrupt-fast")));
+void SysTick_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
+void TIM3_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
 /*============================================================================
  * NMI_Handler
@@ -75,6 +77,16 @@ void TIM2_UP_IRQHandler(void)
     }
 }
 
+void TIM3_IRQHandler(void)
+{
+    if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
+    {
+        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+        
+        count_minutes++;
+        PRINT("[TIM3] Da het 60 giay ke tu khi Start!\r\n");
+    }
+}
 /*============================================================================
  * EXTI7_0_IRQHandler - Flow sensor xung (PA6 = EXTI Line 6)
  *============================================================================*/

@@ -81,14 +81,14 @@
  * 3. SENSORS (Input)
  *============================================================================*/
 #define FLOW_PORT GPIOA
-#define FLOW_PIN GPIO_Pin_6 /* Sensor flow (EXTI) */
+#define FLOW_PIN GPIO_Pin_8 /* Sensor flow (EXTI) */
 #define FLOW_EXTI_LINE EXTI_Line6
 #define FLOW_EXTI_PORTSRC GPIO_PortSourceGPIOA
 #define FLOW_EXTI_PINSRC GPIO_PinSource6
 #define FLOW_IRQn EXTI7_0_IRQn
 
-#define POS_SENSOR_PORT GPIOA
-#define POS_SENSOR_PIN GPIO_Pin_7 /* Vi tri valve: HIGH = open */
+#define POS_SENSOR_PORT GPIOC
+#define POS_SENSOR_PIN GPIO_Pin_15 /* Vi tri valve: HIGH = open */
 
 /*============================================================================
  * 4. 7-SEGMENT DISPLAY (Direct drive, Common Cathode)

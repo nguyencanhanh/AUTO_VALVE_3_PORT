@@ -10,6 +10,7 @@
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_buzzer.h"
 #include "Drivers/drv_ds1307.h"
+#include "App/Data/data_store.h"
 #include <stdio.h> /* For printf */
 
 /*============================================================================
@@ -18,6 +19,7 @@
 static AppBootState_t s_state = APP_BOOT_B1_BIP_LONG;
 static u32            s_timer = 0;
 static u8             s_done  = 0;
+u8                    previous_day;
 
 /*============================================================================
  * APP_Boot_Start - Start step B1a
@@ -30,6 +32,7 @@ void APP_Boot_Start(void)
 
     /* Initial safe state */
     DS1307_Init();
+    Data_Init();        /* Load/init EEPROM settings */
     BSP_Motor_Off();
     BSP_Pump_Off();
 
@@ -37,6 +40,8 @@ void APP_Boot_Start(void)
     BSP_Buzzer_On();
     BSP_LED_AllOn();
     DRV_Display_AllOn();
+
+    PRINT("[BOOT] previous_day=%d\r\n", previous_day);
 
     PRINT("[BOOT] B1a: Buzzer ON (2s), LED/7SEG ON (8s)\r\n");
 }

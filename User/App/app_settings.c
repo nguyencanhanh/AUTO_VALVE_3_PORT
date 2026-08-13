@@ -194,6 +194,15 @@ void APP_Settings_Run(void) {
       if (prv_EnterSubScreen[s_current_item]) prv_EnterSubScreen[s_current_item]();
       PRINT("[SETTINGS] Entered NAV mode, LED8 ON\r\n");
     }
+    if (actions[BTN_IDX_SELECT] == BTN_ACT_SHORT) {
+      if (APP_Home_IsWashing()) {
+        /* Dang suc rua → chuyen sang buoc tiep theo */
+        APP_Home_ManualNextStep();
+      } else {
+        /* Chua suc rua → bat dau suc rua thu cong */
+        APP_Home_StartManualWash();
+      }
+    }
     return;
   }
 
@@ -264,6 +273,7 @@ void APP_Settings_Exit(void) {
   GPIO_SetBits(GPIOA, LED8_PIN); /* LED8 OFF */
   DRV_Display_SetBlink(0x0F, 0);
   s_mode = SET_MODE_IDLE;
+  s_current_item = SETTINGS_TIME;
   PRINT("[SETTINGS] Closed\r\n");
 }
 

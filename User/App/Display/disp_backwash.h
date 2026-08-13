@@ -3,7 +3,7 @@
 
 #include "BSP/bsp_config.h"
 
-void Disp_Backwash_Enter(void);
+void Disp_Backwash_Enter(void);      /* total_min: tong thoi gian suc nguoc */
 void Disp_Backwash_Run(void);
 void Disp_Backwash_Exit(void);
 

@@ -45,8 +45,12 @@ void DRV_Display_Blank(void);
 /* Decimal point thap phan for digit 0-3 */
 void DRV_Display_SetDP(u8 digit, u8 on);
 
-/* Blink digit (bitmask: bit0=D0..bit3=D3) */
+/* Blink digit (bitmask: bit0=D0..bit3=D3) - blink mai mai */
 void DRV_Display_SetBlink(u8 digit_mask, u8 enable);
+
+/* Dem so lan blink hoan chinh (moi ON-OFF-ON = 1 lan) */
+u16  DRV_Display_GetBlinkCount(void);
+void DRV_Display_ResetBlinkCount(void);
 
 /* Refresh multiplexing - CALLED FROM TIM2 ISR every ~3ms */
 void DRV_Display_Refresh(void);
