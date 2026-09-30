@@ -143,7 +143,9 @@ void DRV_Display_Refresh(void) {
   code = (idx < FONT_SIZE) ? s_font[idx] : 0x00;
 
   /* Them decimal point */
-  if (s_dp_buf[s_cur_digit])
+  if (s_dp_buf[s_cur_digit] == 1)
+    code |= 0x80;
+  else if (s_dp_buf[s_cur_digit] == 2 && s_blink_phase)
     code |= 0x80;
 
   /* Export segments + select digit (Common Cathode → ResetBits = turn on Digit)
@@ -203,7 +205,7 @@ void DRV_Display_Time(u8 hour, u8 minute) {
   /* Decimal point 2 va 3 light up (index 1 & 2), turn off dau 1 va 4 (index 0 &
    * 3) */
   s_dp_buf[0] = 0;
-  s_dp_buf[1] = 0;
+  s_dp_buf[1] = 2; /* 2 = blink DP */
   s_dp_buf[2] = 0;
   s_dp_buf[3] = 0;
 }
