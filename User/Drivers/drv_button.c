@@ -44,6 +44,19 @@ u8 DRV_Button_IsLocked(void)
 }
 
 /*============================================================================
+ * DRV_Button_Lock - Lock keyboard immediately
+ *============================================================================*/
+void DRV_Button_Lock(void)
+{
+    GPIO_ResetBits(GPIOA, LED7_PIN);    /* LED7 ON (Active LOW) */
+    DRV_Buzzer_Play(BUZ_LONG);
+    s_locked      = 1;
+    s_combo_cnt   = 0;
+    s_combo_fired = 0;
+    s_idle_cnt    = 0;
+}
+
+/*============================================================================
  * DRV_Button_ResetIdle - Call from app layer on any button activity
  *============================================================================*/
 void DRV_Button_ResetIdle(void)
@@ -72,6 +85,9 @@ void DRV_Button_Tick(void)
             }
         } else {
             s_combo_cnt = 0;
+            if (!up_pressed && !down_pressed) {
+                s_combo_fired = 0;
+            }
         }
     }
 
@@ -79,12 +95,7 @@ void DRV_Button_Tick(void)
     if (!s_locked) {
         s_idle_cnt++;
         if (s_idle_cnt >= BTN_AUTOLOCK_MS) {
-            GPIO_ResetBits(GPIOA, LED7_PIN);    /* LED7 ON (Active LOW) */
-            DRV_Buzzer_Play(BUZ_LONG);          /* 1-second beep */
-            s_locked      = 1;
-            s_combo_cnt   = 0;
-            s_combo_fired = 0;
-            s_idle_cnt    = 0;
+            DRV_Button_Lock();
         }
     }
 }

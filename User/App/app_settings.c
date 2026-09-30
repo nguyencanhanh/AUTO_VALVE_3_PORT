@@ -153,8 +153,37 @@ void APP_Settings_Run(void) {
   u8 i;
   BtnAction_t actions[BTN_IDX_COUNT];
   u8 any_activity = 0;
+  BtnAction_t sel_action;
 
-  /* Skip if keyboard is locked */
+  sel_action = prv_ReadButton(BTN_IDX_SELECT);
+
+  if (sel_action == BTN_ACT_SHORT) {
+    DRV_Button_ResetIdle();
+    DRV_Buzzer_Play(BUZ_BEEP1);
+    if (APP_Home_IsWashing()) {
+      APP_Home_ManualNextStep();
+    } else if (DRV_Button_IsLocked()) {
+      PRINT("[SETTINGS] Ignored SELECT because keyboard is locked\r\n");
+    } else if (s_mode == SET_MODE_IDLE) {
+      APP_Home_StartManualWash();
+    } else if (s_mode == SET_MODE_EDIT) {
+      if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
+      s_mode = SET_MODE_NAV;
+      if (prv_EnterSubScreen[s_current_item]) prv_EnterSubScreen[s_current_item]();
+      GPIO_ResetBits(GPIOA, LED8_PIN); /* Ensure LED8 stays ON */
+      PRINT("[SETTINGS] Returned to NAV from EDIT\r\n");
+    } else if (s_mode == SET_MODE_NAV) {
+      if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
+      GPIO_SetBits(GPIOA, LED8_PIN); /* LED8 OFF */
+      DRV_Display_SetBlink(0x0F, 0);
+      s_mode = SET_MODE_IDLE;
+      APP_Home_Enter();
+      PRINT("[SETTINGS] Exited to Home\r\n");
+    }
+    return;
+  }
+
+  /* Skip all app-level key actions while keyboard is locked */
   if (DRV_Button_IsLocked()) {
     /* If we were active, force back to IDLE */
     if (s_mode != SET_MODE_IDLE) {
@@ -164,13 +193,14 @@ void APP_Settings_Run(void) {
       DRV_Display_SetBlink(0x0F, 0);
       s_mode = SET_MODE_IDLE;
       APP_Home_Enter(); /* Restore home display */
+      PRINT("[SETTINGS] Auto-lock triggered, forced to IDLE\r\n");
     }
     return;
   }
 
   /* Read all 4 buttons */
   for (i = 0; i < BTN_IDX_COUNT; i++) {
-    actions[i] = prv_ReadButton(i);
+    actions[i] = (i == BTN_IDX_SELECT) ? sel_action : prv_ReadButton(i);
     if (actions[i] != BTN_ACT_NONE) {
       any_activity = 1;
     }
@@ -187,21 +217,16 @@ void APP_Settings_Run(void) {
    *==================================================================*/
   if (s_mode == SET_MODE_IDLE) {
     if (actions[BTN_IDX_MENU] == BTN_ACT_SHORT) {
+      if (APP_Home_IsWashing()) {
+        DRV_Buzzer_Play(BUZ_BEEP2); /* Beep error, block settings during wash */
+        return;
+      }
       /* Enter settings mode */
       s_mode = SET_MODE_NAV;
       s_current_item = SETTINGS_TIME;
       GPIO_ResetBits(GPIOA, LED8_PIN); /* LED8 ON (Active LOW) */
       if (prv_EnterSubScreen[s_current_item]) prv_EnterSubScreen[s_current_item]();
       PRINT("[SETTINGS] Entered NAV mode, LED8 ON\r\n");
-    }
-    if (actions[BTN_IDX_SELECT] == BTN_ACT_SHORT) {
-      if (APP_Home_IsWashing()) {
-        /* Dang suc rua → chuyen sang buoc tiep theo */
-        APP_Home_ManualNextStep();
-      } else {
-        /* Chua suc rua → bat dau suc rua thu cong */
-        APP_Home_StartManualWash();
-      }
     }
     return;
   }
@@ -218,6 +243,7 @@ void APP_Settings_Run(void) {
       if (s_current_item >= SETTINGS_ITEM_COUNT)
         s_current_item = SETTINGS_TIME;
       if (prv_EnterSubScreen[s_current_item]) prv_EnterSubScreen[s_current_item]();
+      GPIO_ResetBits(GPIOA, LED8_PIN); /* Ensure LED8 stays ON */
     }
 
     if (actions[BTN_IDX_DOWN] == BTN_ACT_SHORT) {
@@ -228,21 +254,13 @@ void APP_Settings_Run(void) {
       else
         s_current_item = SETTINGS_ITEM_COUNT - 1;
       if (prv_EnterSubScreen[s_current_item]) prv_EnterSubScreen[s_current_item]();
+      GPIO_ResetBits(GPIOA, LED8_PIN); /* Ensure LED8 stays ON */
     }
 
     if (actions[BTN_IDX_MENU] == BTN_ACT_SHORT) {
       /* Enter selected sub-screen */
       s_mode = SET_MODE_EDIT;
       if (prv_RunSubScreen[s_current_item]) prv_RunSubScreen[s_current_item](actions);
-    }
-
-    if (actions[BTN_IDX_SELECT] == BTN_ACT_SHORT) {
-      /* Back to home */
-      if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
-      GPIO_SetBits(GPIOA, LED8_PIN); /* LED8 OFF */
-      s_mode = SET_MODE_IDLE;
-      APP_Home_Enter(); /* Restore home display */
-      PRINT("[SETTINGS] Back to home\r\n");
     }
     return;
   }
@@ -251,16 +269,8 @@ void APP_Settings_Run(void) {
    * EDIT mode: inside a sub-screen
    *==================================================================*/
   if (s_mode == SET_MODE_EDIT) {
-
-    if (actions[BTN_IDX_SELECT] == BTN_ACT_SHORT) {
-      /* Back to NAV */
-      if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
-      s_mode = SET_MODE_NAV;
-      if (prv_EnterSubScreen[s_current_item]) prv_EnterSubScreen[s_current_item]();
-    } else {
-      /* Delegate to sub-screen */
-      if (prv_RunSubScreen[s_current_item]) prv_RunSubScreen[s_current_item](actions);
-    }
+    /* Delegate to sub-screen */
+    if (prv_RunSubScreen[s_current_item]) prv_RunSubScreen[s_current_item](actions);
   }
 }
 

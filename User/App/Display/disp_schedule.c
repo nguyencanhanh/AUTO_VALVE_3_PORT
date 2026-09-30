@@ -7,6 +7,8 @@
  *****************************************************************************/
 #include "disp_schedule.h"
 #include "Drivers/drv_display.h"
+#include "Drivers/drv_button.h"
+#include "BSP/bsp_gpio.h"
 #include "App/Data/data_store.h"
 #include "debug.h"
 
@@ -17,6 +19,9 @@ void Disp_Schedule_Enter(void)
 {
     AppSettings_t *cfg = Data_GetSettings();
     DRV_Display_Time(cfg->wash_sched_hour, cfg->wash_sched_min);
+    if(DRV_Button_IsLocked()) {
+        GPIO_ResetBits(GPIOA, LED7_PIN);
+    }
     PRINT("[SCHEDULE] Display: %02d:%02d\r\n", cfg->wash_sched_hour, cfg->wash_sched_min);
 }
 

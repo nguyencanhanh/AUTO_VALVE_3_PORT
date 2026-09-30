@@ -26,6 +26,9 @@ void DRV_Button_Tick(void);
 /* Check keyboard lock state: 1 = locked, 0 = unlocked */
 u8 DRV_Button_IsLocked(void);
 
+/* Lock keyboard immediately and wait for unlock combo again */
+void DRV_Button_Lock(void);
+
 /* Reset idle timer (call from app layer when any button is pressed) */
 void DRV_Button_ResetIdle(void);
 
