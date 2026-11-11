@@ -6,9 +6,10 @@
  *   NMI_Handler          : NMI exception (loop)
  *   HardFault_Handler    : Hard fault → System reset
  *   TIM2_UP_IRQHandler   : 1ms tick → buzzer tick + display refresh
- *   EXTI7_0_IRQHandler   : Flow sensor pulse count (PA6, EXTI Line6)
+ *   EXTI15_8_IRQHandler  : Flow sensor pulse count (PA8, EXTI Line8)
  *****************************************************************************/
 #include "ch32x035_it.h"
+#include "BSP/bsp_config.h"
 #include "BSP/bsp_tim.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_buzzer.h"
@@ -25,7 +26,7 @@ extern volatile u32 g_flow_pulses;
 void NMI_Handler(void)          __attribute__((interrupt("WCH-Interrupt-fast")));
 void HardFault_Handler(void)    __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM2_UP_IRQHandler(void)   __attribute__((interrupt("WCH-Interrupt-fast")));
-void EXTI7_0_IRQHandler(void)   __attribute__((interrupt("WCH-Interrupt-fast")));
+void EXTI15_8_IRQHandler(void)  __attribute__((interrupt("WCH-Interrupt-fast")));
 void SysTick_Handler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 void TIM3_IRQHandler(void) __attribute__((interrupt("WCH-Interrupt-fast")));
 
@@ -88,12 +89,12 @@ void TIM3_IRQHandler(void)
     }
 }
 /*============================================================================
- * EXTI7_0_IRQHandler - Flow sensor xung (PA6 = EXTI Line 6)
+ * EXTI15_8_IRQHandler - Flow sensor pulse count (PA8 = EXTI Line 8)
  *============================================================================*/
-void EXTI7_0_IRQHandler(void)
+void EXTI15_8_IRQHandler(void)
 {
-    if (EXTI_GetITStatus(EXTI_Line6) != RESET) {
-        EXTI_ClearITPendingBit(EXTI_Line6);
+    if (EXTI_GetITStatus(FLOW_EXTI_LINE) != RESET) {
+        EXTI_ClearITPendingBit(FLOW_EXTI_LINE);
         g_flow_pulses++;
     }
 }

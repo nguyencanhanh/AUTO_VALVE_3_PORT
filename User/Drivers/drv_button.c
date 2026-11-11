@@ -17,8 +17,7 @@
 static u8  s_locked = 1;
 
 /* Combo hold counter (ms) */
-static u16 s_combo_cnt   = 0;
-static u8  s_combo_fired = 0;
+static u16 s_combo_cnt = 0;
 
 /* Auto-lock idle counter (ms) */
 static u32 s_idle_cnt = 0;
@@ -31,7 +30,6 @@ void DRV_Button_Init(void)
     GPIO_ResetBits(GPIOA, LED7_PIN);    /* LED7 ON = locked indicator */
     s_locked      = 1;
     s_combo_cnt   = 0;
-    s_combo_fired = 0;
     s_idle_cnt    = 0;
 }
 
@@ -52,7 +50,6 @@ void DRV_Button_Lock(void)
     DRV_Buzzer_Play(BUZ_LONG);
     s_locked      = 1;
     s_combo_cnt   = 0;
-    s_combo_fired = 0;
     s_idle_cnt    = 0;
 }
 
@@ -70,7 +67,7 @@ void DRV_Button_ResetIdle(void)
 void DRV_Button_Tick(void)
 {
     /* ---- Combo unlock: BTN2 (UP) + BTN3 (DOWN) held together 5s ---- */
-    if (s_locked && !s_combo_fired) {
+    if (s_locked) {
         uint8_t up_pressed   = BSP_Button_ReadRaw(BTN_UP_PIN);
         uint8_t down_pressed = BSP_Button_ReadRaw(BTN_DOWN_PIN);
 
@@ -80,14 +77,11 @@ void DRV_Button_Tick(void)
                 GPIO_SetBits(GPIOA, LED7_PIN);      /* LED7 OFF (Active LOW) */
                 DRV_Buzzer_Play(BUZ_LONG);          /* 1-second beep */
                 s_locked = 0;
-                s_combo_fired = 1;
+                s_combo_cnt = 0;
                 s_idle_cnt = 0;
             }
         } else {
             s_combo_cnt = 0;
-            if (!up_pressed && !down_pressed) {
-                s_combo_fired = 0;
-            }
         }
     }
 

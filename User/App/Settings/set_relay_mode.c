@@ -19,6 +19,7 @@
  *****************************************************************************/
 #include "set_relay_mode.h"
 #include "App/Data/data_store.h"
+#include "BSP/bsp_gpio.h"
 #include "Drivers/drv_display.h"
 #include "debug.h"
 
@@ -81,6 +82,7 @@ void Set_RelayMode_Run(BtnAction_t *actions) {
       DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
       Data_SetRelayMode(s_mode);
       PRINT("[SET_RELAY] Saved: b-%02d\r\n", s_mode + 1);
+      APP_Settings_SetNavMode();
       break;
     }
     prv_UpdateDisplay();
@@ -109,6 +111,7 @@ void Set_RelayMode_Run(BtnAction_t *actions) {
  * Set_RelayMode_Exit - Tat blink
  *============================================================================*/
 void Set_RelayMode_Exit(void) {
+  BSP_LED_AllOff();
   DRV_Display_Blank();
   DRV_Display_SetBlink(0x0F, 0);
   s_state = RELAY_SHOW;

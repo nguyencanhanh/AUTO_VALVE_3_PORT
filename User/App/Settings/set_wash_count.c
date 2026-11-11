@@ -21,6 +21,7 @@
  *****************************************************************************/
 #include "set_wash_count.h"
 #include "App/Data/data_store.h"
+#include "BSP/bsp_gpio.h"
 #include "Drivers/drv_display.h"
 #include "debug.h"
 
@@ -89,6 +90,7 @@ void Set_WashCount_Run(BtnAction_t *actions) {
       Data_SetWashCount(s_count);
       DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
       PRINT("[SET_COUNT] Saved: F-%02d\r\n", s_count);
+      APP_Settings_SetNavMode();
       break;
     }
     prv_UpdateDisplay();
@@ -126,6 +128,7 @@ void Set_WashCount_Run(BtnAction_t *actions) {
  * Set_WashCount_Exit - Tat blink, khong luu neu chua nhan Enter xong
  *============================================================================*/
 void Set_WashCount_Exit(void) {
+  BSP_LED_AllOff();
   DRV_Display_Blank();
   DRV_Display_SetBlink(0x0F, 0);
   s_state = COUNT_SHOW;

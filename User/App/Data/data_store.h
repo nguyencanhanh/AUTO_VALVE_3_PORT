@@ -27,6 +27,7 @@
 #define EEPROM_ADDR_MAGIC        0x0020  /* Magic key for first-boot detect */
 #define EEPROM_ADDR_WASH_PHASE   0x0024  /* Wash phase: 0=idle, 1=BW, 2=FR */
 #define EEPROM_ADDR_WASH_REMAIN  0x0025  /* Wash remain_count */
+#define EEPROM_ADDR_DAYS_ELAPSED 0x0026  /* So ngay da troi qua trong chu ky (u8) */
 
 /* Wash phase values */
 #define WASH_PHASE_IDLE  0x00u
@@ -94,5 +95,9 @@ void Data_SetFlowLiters(u32 liters);
 void Data_SaveWashState(u8 phase, u8 remain_count);
 void Data_LoadWashState(u8 *phase, u8 *remain_count);
 void Data_ClearWashState(void);
+
+/* Days elapsed in wash period */
+u8   Data_GetDaysElapsed(void);
+void Data_SetDaysElapsed(u8 days);
 
 #endif /* __DATA_STORE_H */

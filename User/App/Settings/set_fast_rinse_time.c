@@ -23,6 +23,7 @@
  *****************************************************************************/
 #include "set_fast_rinse_time.h"
 #include "App/Data/data_store.h"
+#include "BSP/bsp_gpio.h"
 #include "Drivers/drv_display.h"
 #include "debug.h"
 
@@ -103,6 +104,7 @@ void Set_FastRinseTime_Run(BtnAction_t *actions) {
       DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
       Data_SetFastRinseTime(s_minutes);
       PRINT("[SET_FR] Saved: -%02d min\r\n", s_minutes);
+      APP_Settings_SetNavMode();
       break;
     }
     prv_UpdateDisplay();
@@ -146,6 +148,7 @@ void Set_FastRinseTime_Exit(void) {
 
   DRV_Display_Blank();
   DRV_Display_SetBlink(0x0F, 0);
+  BSP_LED_AllOff();
   s_state = FR_SHOW;
   PRINT("[SET_FR] Exit\r\n");
 }

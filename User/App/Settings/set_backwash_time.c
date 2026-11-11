@@ -23,6 +23,7 @@
  *****************************************************************************/
 #include "set_backwash_time.h"
 #include "App/Data/data_store.h"
+#include "BSP/bsp_gpio.h"
 #include "Drivers/drv_display.h"
 #include "debug.h"
 
@@ -67,7 +68,7 @@ void Set_BackwashTime_Enter(void) {
 
   /* LED12 ON = don vi phut, LED2 ON = che do suc nguoc */
   GPIO_ResetBits(GPIOA, LED12_PIN); /* Active LOW */
-  GPIO_ResetBits(GPIOA, LED2_PIN);  /* Active LOW */
+  GPIO_ResetBits(GPIOC, LED2_PIN);  /* Active LOW */
 
   DRV_Display_SetBlink(0x0F, 0); /* No blink */
   prv_UpdateDisplay();
@@ -103,6 +104,7 @@ void Set_BackwashTime_Run(BtnAction_t *actions) {
       DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
       Data_SetBackwashTime(s_minutes);
       PRINT("[SET_BW] Saved: -%02d min\r\n", s_minutes);
+      APP_Settings_SetNavMode();
       break;
     }
     prv_UpdateDisplay();
@@ -142,8 +144,8 @@ void Set_BackwashTime_Run(BtnAction_t *actions) {
 void Set_BackwashTime_Exit(void) {
   /* Tat LED12 va LED2 */
   GPIO_SetBits(GPIOA, LED12_PIN);
-  GPIO_SetBits(GPIOA, LED2_PIN);
-
+  GPIO_SetBits(GPIOC, LED2_PIN);
+  BSP_LED_AllOff();
   DRV_Display_Blank();
   DRV_Display_SetBlink(0x0F, 0);
   s_state = BW_SHOW;

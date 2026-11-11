@@ -15,6 +15,7 @@
  *   BACK (SELECT) - Handled by app_settings (exit to NAV)
  *****************************************************************************/
 #include "set_time.h"
+#include "BSP/bsp_gpio.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_ds1307.h"
 #include "debug.h"
@@ -39,7 +40,7 @@ void Set_Time_Enter(void) {
   s_state = TIME_SHOW;
 
   DRV_Display_SetBlink(0x0F, 0); /* No blink */
-  GPIO_SetBits(GPIOA, LED6_PIN);
+  GPIO_ResetBits(GPIOA, LED6_PIN);
   prv_UpdateDisplay();
   PRINT("[SET_TIME] Enter: %02d:%02d\r\n", s_hour, s_minute);
 }
@@ -80,6 +81,7 @@ void Set_Time_Run(BtnAction_t *actions) {
       DS1307_SetHour(s_hour);
       DS1307_SetMinute(s_minute);
       PRINT("[SET_TIME] Saved: %02d:%02d\r\n", s_hour, s_minute);
+      APP_Settings_SetNavMode();
       break;
     }
     prv_UpdateDisplay();
@@ -132,6 +134,7 @@ void Set_Time_Run(BtnAction_t *actions) {
  *============================================================================*/
 void Set_Time_Exit(void) {
   GPIO_SetBits(GPIOA, LED6_PIN);
+  BSP_LED_AllOff();
   DRV_Display_Blank();
   s_state = TIME_SHOW;
   PRINT("[SET_TIME] Exit\r\n");

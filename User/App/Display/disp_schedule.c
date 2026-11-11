@@ -19,9 +19,11 @@ void Disp_Schedule_Enter(void)
 {
     AppSettings_t *cfg = Data_GetSettings();
     DRV_Display_Time(cfg->wash_sched_hour, cfg->wash_sched_min);
+    DRV_Display_SetDP(1, 1); /* Dau cham o giua sang co dinh, khong nhap nhay */
     if(DRV_Button_IsLocked()) {
         GPIO_ResetBits(GPIOA, LED7_PIN);
     }
+    GPIO_SetBits(GPIOA, LED6_PIN);
     PRINT("[SCHEDULE] Display: %02d:%02d\r\n", cfg->wash_sched_hour, cfg->wash_sched_min);
 }
 
@@ -31,4 +33,5 @@ void Disp_Schedule_Enter(void)
 void Disp_Schedule_Exit(void)
 {
     DRV_Display_Blank();
+    BSP_LED_AllOff();
 }

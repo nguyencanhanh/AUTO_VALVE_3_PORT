@@ -18,6 +18,7 @@
  *****************************************************************************/
 #include "set_wash_schedule.h"
 #include "App/Data/data_store.h"
+#include "BSP/bsp_gpio.h"
 #include "Drivers/drv_display.h"
 #include "debug.h"
 
@@ -34,7 +35,10 @@ static u8 s_minute;
 /*----------------------------------------------------------------------------
  * Refresh display with current schedule hour:minute
  *----------------------------------------------------------------------------*/
-static void prv_UpdateDisplay(void) { DRV_Display_Time(s_hour, s_minute); }
+static void prv_UpdateDisplay(void) {
+  DRV_Display_Time(s_hour, s_minute);
+  DRV_Display_SetDP(1, 1); /* Dau cham o giua khong nhap nhay */
+}
 
 /*============================================================================
  * Set_WashSchedule_Enter - Doc EEPROM, hien thi, khong blink
@@ -92,6 +96,7 @@ void Set_WashSchedule_Run(BtnAction_t *actions) {
       DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
       Data_SetWashSchedule(s_hour, s_minute);
       PRINT("[SET_SCHED] Saved: %02d:%02d\r\n", s_hour, s_minute);
+      APP_Settings_SetNavMode();
       break;
     }
     prv_UpdateDisplay();
@@ -143,6 +148,7 @@ void Set_WashSchedule_Run(BtnAction_t *actions) {
  * Set_WashSchedule_Exit - Tat blink, khong luu neu chua nhan Enter xong
  *============================================================================*/
 void Set_WashSchedule_Exit(void) {
+  BSP_LED_AllOff();
   DRV_Display_Blank();
   DRV_Display_SetBlink(0x0F, 0);
   s_state = SCHED_SHOW;

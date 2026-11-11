@@ -54,13 +54,13 @@
 #define BTN_MENU_PIN GPIO_Pin_15
 
 #define BTN_UP_PORT GPIOA
-#define BTN_UP_PIN GPIO_Pin_16
+#define BTN_UP_PIN GPIO_Pin_18
 
 #define BTN_DOWN_PORT GPIOA
 #define BTN_DOWN_PIN GPIO_Pin_17
 
 #define BTN_SELECT_PORT GPIOA
-#define BTN_SELECT_PIN GPIO_Pin_18
+#define BTN_SELECT_PIN GPIO_Pin_16
 
 /* All button on cung port GPIOA */
 #define BTN_ALL_PINS (BTN_MENU_PIN | BTN_UP_PIN | BTN_DOWN_PIN | BTN_SELECT_PIN)
@@ -82,10 +82,10 @@
  *============================================================================*/
 #define FLOW_PORT GPIOA
 #define FLOW_PIN GPIO_Pin_8 /* Sensor flow (EXTI) */
-#define FLOW_EXTI_LINE EXTI_Line6
+#define FLOW_EXTI_LINE EXTI_Line8
 #define FLOW_EXTI_PORTSRC GPIO_PortSourceGPIOA
-#define FLOW_EXTI_PINSRC GPIO_PinSource6
-#define FLOW_IRQn EXTI7_0_IRQn
+#define FLOW_EXTI_PINSRC GPIO_PinSource8
+#define FLOW_IRQn EXTI15_8_IRQn
 
 #define POS_SENSOR_PORT GPIOC
 #define POS_SENSOR_PIN GPIO_Pin_15 /* Vi tri valve: HIGH = open */
@@ -157,7 +157,7 @@
 /*============================================================================
  * 8. SYSTEM CONSTANTS
  *============================================================================*/
-#define FLOW_PULSES_PER_LITER 450u /* Pulse/lit - calibrate theo sensor */
+#define FLOW_PULSES_PER_LITER 210u /* ZJMAZ-20: approx 210 pulses/liter */
 #define VALVE_TIMEOUT_MS 15000u    /* Timeout cho valve open/close (ms) */
 #define DEBOUNCE_MS 20u            /* Debounce button bam (ms) */
 #define LONG_PRESS_MS 2000u        /* Long press button (ms) */
@@ -179,5 +179,21 @@
 #define BOOT_BIP2_MS 1000u     /* B1c: Beep boot ~1 seconds */
 #define BOOT_PRODUCT_MS 2000u  /* B2:  Display product code ~2 seconds */
 #define BOOT_SCAN_MS 1500u     /* B3:  Scan function ~1.5 seconds */
+
+/*============================================================================
+ * 11. INTERLOCK (Daisy-chain Multi-valve Synchronization)
+ *     PA9  (Output): Gui tin hieu ban (busy) sang van tiep theo
+ *     PC14 (Input) : Nhan tin hieu ban tu van phia truoc
+ *============================================================================*/
+#define INTERLOCK_IN_PORT      GPIOC
+#define INTERLOCK_IN_PIN       GPIO_Pin_14   /* Input tu van truoc */
+
+#define INTERLOCK_OUT_PORT     GPIOA
+#define INTERLOCK_OUT_PIN      GPIO_Pin_9    /* Output den van sau */
+
+/* 1 = Active HIGH: PA9=1 khi ban/dang suc, PC14=1 nghia la he thong ban
+ * 0 = Active LOW : PA9=0 khi ban/dang suc, PC14=0 nghia la he thong ban
+ */
+#define INTERLOCK_BUSY_LEVEL   1
 
 #endif /* __BSP_CONFIG_H */

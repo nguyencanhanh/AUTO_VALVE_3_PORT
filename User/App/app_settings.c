@@ -44,6 +44,7 @@ static u32 s_btn_last_repeat[BTN_IDX_COUNT];
 static u8 s_btn_state[BTN_IDX_COUNT]; /* 0=released, 1=pressed */
 static u8 s_btn_long_fired[BTN_IDX_COUNT];
 static u8 s_btn_raw_prev[BTN_IDX_COUNT];
+static u8 s_was_locked = 1;
 
 /*============================================================================
  * Settings state machine
@@ -144,6 +145,7 @@ void APP_Settings_Enter(void) {
     s_btn_long_fired[i] = 0;
     s_btn_raw_prev[i] = 0;
   }
+  s_was_locked = 1;
 }
 
 /*============================================================================
@@ -155,36 +157,9 @@ void APP_Settings_Run(void) {
   u8 any_activity = 0;
   BtnAction_t sel_action;
 
-  sel_action = prv_ReadButton(BTN_IDX_SELECT);
-
-  if (sel_action == BTN_ACT_SHORT) {
-    DRV_Button_ResetIdle();
-    DRV_Buzzer_Play(BUZ_BEEP1);
-    if (APP_Home_IsWashing()) {
-      APP_Home_ManualNextStep();
-    } else if (DRV_Button_IsLocked()) {
-      PRINT("[SETTINGS] Ignored SELECT because keyboard is locked\r\n");
-    } else if (s_mode == SET_MODE_IDLE) {
-      APP_Home_StartManualWash();
-    } else if (s_mode == SET_MODE_EDIT) {
-      if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
-      s_mode = SET_MODE_NAV;
-      if (prv_EnterSubScreen[s_current_item]) prv_EnterSubScreen[s_current_item]();
-      GPIO_ResetBits(GPIOA, LED8_PIN); /* Ensure LED8 stays ON */
-      PRINT("[SETTINGS] Returned to NAV from EDIT\r\n");
-    } else if (s_mode == SET_MODE_NAV) {
-      if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
-      GPIO_SetBits(GPIOA, LED8_PIN); /* LED8 OFF */
-      DRV_Display_SetBlink(0x0F, 0);
-      s_mode = SET_MODE_IDLE;
-      APP_Home_Enter();
-      PRINT("[SETTINGS] Exited to Home\r\n");
-    }
-    return;
-  }
-
   /* Skip all app-level key actions while keyboard is locked */
   if (DRV_Button_IsLocked()) {
+    s_was_locked = 1;
     /* If we were active, force back to IDLE */
     if (s_mode != SET_MODE_IDLE) {
       if (s_mode == SET_MODE_EDIT)
@@ -194,6 +169,43 @@ void APP_Settings_Run(void) {
       s_mode = SET_MODE_IDLE;
       APP_Home_Enter(); /* Restore home display */
       PRINT("[SETTINGS] Auto-lock triggered, forced to IDLE\r\n");
+    }
+    return;
+  }
+
+  /* Just unlocked: swallow held UP/DOWN release so no spurious short-press or beep fires */
+  if (s_was_locked) {
+    s_was_locked = 0;
+    for (i = 0; i < BTN_IDX_COUNT; i++) {
+      uint8_t raw = BSP_Button_ReadRaw(s_btn_pins[i]);
+      s_btn_raw_prev[i] = raw;
+      s_btn_state[i] = raw;
+      s_btn_long_fired[i] = raw; /* Keys held during unlock won't fire short release */
+      s_btn_press_time[i] = BSP_GetTick();
+      s_btn_last_repeat[i] = BSP_GetTick();
+    }
+  }
+
+  sel_action = prv_ReadButton(BTN_IDX_SELECT);
+
+  if (sel_action == BTN_ACT_SHORT) {
+    DRV_Button_ResetIdle();
+    DRV_Buzzer_Play(BUZ_BEEP1);
+    if (APP_Home_IsWashing()) {
+      APP_Home_ManualNextStep();
+    } else if (s_mode == SET_MODE_IDLE) {
+      APP_Home_StartManualWash();
+    } else {
+      if (s_mode == SET_MODE_EDIT) {
+        if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
+      } else if (s_mode == SET_MODE_NAV) {
+        if (prv_ExitSubScreen[s_current_item]) prv_ExitSubScreen[s_current_item]();
+      }
+      GPIO_SetBits(GPIOA, LED8_PIN); /* LED8 OFF */
+      DRV_Display_SetBlink(0x0F, 0);
+      s_mode = SET_MODE_IDLE;
+      APP_Home_Enter();
+      PRINT("[SETTINGS] Exited to Home\r\n");
     }
     return;
   }
@@ -291,3 +303,14 @@ void APP_Settings_Exit(void) {
  * APP_Settings_IsActive - Returns 1 when settings controls the display
  *============================================================================*/
 u8 APP_Settings_IsActive(void) { return (s_mode != SET_MODE_IDLE); }
+
+/*============================================================================
+ * APP_Settings_SetNavMode - Called by sub-screens when they finish editing
+ *============================================================================*/
+void APP_Settings_SetNavMode(void) {
+  if (s_mode == SET_MODE_EDIT) {
+    s_mode = SET_MODE_NAV;
+    GPIO_ResetBits(GPIOA, LED8_PIN); /* Ensure LED8 stays ON */
+    PRINT("[SETTINGS] Returned to NAV mode\r\n");
+  }
+}

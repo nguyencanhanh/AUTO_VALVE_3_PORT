@@ -62,6 +62,31 @@ static void prv_SetDefaults(AppSettings_t *cfg) {
     cfg->reserved          = 0;
 }
 
+static void prv_ValidateSettings(void) {
+    if (s_settings.wash_sched_hour > 23u || s_settings.wash_sched_min > 59u) {
+        Data_SetWashSchedule(DEFAULT_WASH_SCHED_HOUR, DEFAULT_WASH_SCHED_MIN);
+    }
+    if (s_settings.wash_count > 20u) {
+        Data_SetWashCount(DEFAULT_WASH_COUNT);
+    }
+    if (s_settings.wash_period_hours > 99u) {
+        Data_SetWashPeriod(DEFAULT_WASH_PERIOD_HOURS);
+    }
+    if (s_settings.backwash_sec > 99u) {
+        Data_SetBackwashTime(DEFAULT_BACKWASH_SEC);
+    }
+    if (s_settings.fast_rinse_sec > 99u) {
+        Data_SetFastRinseTime(DEFAULT_FAST_RINSE_SEC);
+    }
+    if (s_settings.backwash_sec == 0u && s_settings.fast_rinse_sec == 0u) {
+        Data_SetBackwashTime(DEFAULT_BACKWASH_SEC);
+        Data_SetFastRinseTime(DEFAULT_FAST_RINSE_SEC);
+    }
+    if (s_settings.relay_mode > 1u) {
+        Data_SetRelayMode(DEFAULT_RELAY_MODE);
+    }
+}
+
 /*============================================================================
  * Data_Init - Goi 1 lan khi khoi dong
  *============================================================================*/
@@ -76,6 +101,8 @@ void Data_Init(void) {
         Data_SaveAll(&s_settings);
         Data_SetFilterMinutes(0);
         Data_SetFlowLiters(0);
+        Data_ClearWashState();
+        Data_SetDaysElapsed(0);
         prv_WriteMagic();
 
         /* Verify: doc lai magic key sau khi ghi */
@@ -86,6 +113,7 @@ void Data_Init(void) {
         /* Doc cai dat tu EEPROM vao RAM cache */
         PRINT("[DATA] Loading settings from EEPROM\r\n");
         Data_LoadAll(&s_settings);
+        prv_ValidateSettings();
     }
 
     PRINT("[DATA] Schedule=%02d:%02d Count=%d Period=%dh BW=%ds FR=%ds Relay=%d\r\n",
@@ -119,38 +147,38 @@ AppSettings_t* Data_GetSettings(void) {
 void Data_SetWashSchedule(u8 hour, u8 min) {
     s_settings.wash_sched_hour = hour;
     s_settings.wash_sched_min  = min;
-    prv_SaveByte(0, hour);  /* offset 0 = wash_sched_hour */
-    prv_SaveByte(1, min);   /* offset 1 = wash_sched_min */
+    prv_SaveByte((u16)__builtin_offsetof(AppSettings_t, wash_sched_hour), hour);
+    prv_SaveByte((u16)__builtin_offsetof(AppSettings_t, wash_sched_min), min);
     PRINT("[DATA] Saved schedule: %02d:%02d\r\n", hour, min);
 }
 
 void Data_SetWashCount(u8 count) {
     s_settings.wash_count = count;
-    prv_SaveByte(2, count); /* offset 2 = wash_count */
+    prv_SaveByte((u16)__builtin_offsetof(AppSettings_t, wash_count), count);
     PRINT("[DATA] Saved wash count: %d\r\n", count);
 }
 
 void Data_SetWashPeriod(u8 hours) {
     s_settings.wash_period_hours = hours;
-    prv_SaveByte(3, hours); /* offset 3 = wash_period_hours */
+    prv_SaveByte((u16)__builtin_offsetof(AppSettings_t, wash_period_hours), hours);
     PRINT("[DATA] Saved wash period: %dh\r\n", hours);
 }
 
 void Data_SetBackwashTime(u8 sec) {
     s_settings.backwash_sec = sec;
-    prv_SaveByte(4, sec);   /* offset 4 = backwash_sec */
+    prv_SaveByte((u16)__builtin_offsetof(AppSettings_t, backwash_sec), sec);
     PRINT("[DATA] Saved backwash: %ds\r\n", sec);
 }
 
 void Data_SetFastRinseTime(u8 sec) {
     s_settings.fast_rinse_sec = sec;
-    prv_SaveByte(5, sec);   /* offset 5 = fast_rinse_sec */
+    prv_SaveByte((u16)__builtin_offsetof(AppSettings_t, fast_rinse_sec), sec);
     PRINT("[DATA] Saved fast rinse: %ds\r\n", sec);
 }
 
 void Data_SetRelayMode(u8 mode) {
     s_settings.relay_mode = mode;
-    prv_SaveByte(6, mode);  /* offset 6 = relay_mode */
+    prv_SaveByte((u16)__builtin_offsetof(AppSettings_t, relay_mode), mode);
     PRINT("[DATA] Saved relay mode: %d\r\n", mode);
 }
 
@@ -212,4 +240,18 @@ void Data_ClearWashState(void) {
     DRV_AT24C64_WriteByte(EEPROM_ADDR_WASH_PHASE, WASH_PHASE_IDLE);
     DRV_AT24C64_WriteByte(EEPROM_ADDR_WASH_REMAIN, 0);
     PRINT("[DATA] Cleared wash state\r\n");
+}
+
+/*============================================================================
+ * Days elapsed persistence
+ *============================================================================*/
+u8 Data_GetDaysElapsed(void) {
+    u8 days = 0;
+    DRV_AT24C64_ReadByte(EEPROM_ADDR_DAYS_ELAPSED, &days);
+    return days;
+}
+
+void Data_SetDaysElapsed(u8 days) {
+    DRV_AT24C64_WriteByte(EEPROM_ADDR_DAYS_ELAPSED, days);
+    PRINT("[DATA] Saved days elapsed: %d\r\n", days);
 }

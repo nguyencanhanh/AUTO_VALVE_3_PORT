@@ -143,8 +143,10 @@ void DRV_Display_Refresh(void) {
   code = (idx < FONT_SIZE) ? s_font[idx] : 0x00;
 
   /* Them decimal point */
-  if (s_dp_buf[s_cur_digit] == 1)
-    code |= 0x80;
+  if (s_dp_buf[s_cur_digit] == 1) {
+    if (!((s_blink_mask & (1u << s_cur_digit)) && !s_blink_phase))
+      code |= 0x80;
+  }
   else if (s_dp_buf[s_cur_digit] == 2 && s_blink_phase)
     code |= 0x80;
 

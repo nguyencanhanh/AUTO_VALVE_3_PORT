@@ -38,6 +38,7 @@
 #include "App/app_home.h"
 #include "App/app_settings.h"
 #include "App/app_error.h"
+#include "App/app_interlock.h"
 
 /*============================================================================
  * GLOBAL VARIABLES (dung common voi ch32x035_it.c)
@@ -45,14 +46,14 @@
 volatile u32 g_flow_pulses = 0;   /* Pulse flow sensor - dem trong EXTI ISR */
 
 /*============================================================================
- * Flow Sensor EXTI Init - PA6 → EXTI Line 6 → EXTI7_0_IRQn
+ * Flow Sensor EXTI Init - PA8 → EXTI Line 8 → EXTI15_8_IRQn
  *============================================================================*/
 static void FlowSensor_EXTI_Init(void)
 {
     EXTI_InitTypeDef exti = {0};
     NVIC_InitTypeDef nvic = {0};
 
-    /* PA6 already configure Input Pull-Up trong BSP_GPIO_Init() */
+    /* PA8 already configure Input Pull-Up trong BSP_GPIO_Init() */
     GPIO_EXTILineConfig(FLOW_EXTI_PORTSRC, FLOW_EXTI_PINSRC);
 
     exti.EXTI_Line    = FLOW_EXTI_LINE;
@@ -61,7 +62,7 @@ static void FlowSensor_EXTI_Init(void)
     exti.EXTI_LineCmd = ENABLE;
     EXTI_Init(&exti);
 
-    nvic.NVIC_IRQChannel                   = FLOW_IRQn;   /* EXTI7_0_IRQn */
+    nvic.NVIC_IRQChannel                   = FLOW_IRQn;   /* EXTI15_8_IRQn */
     nvic.NVIC_IRQChannelPreemptionPriority = 1;
     nvic.NVIC_IRQChannelSubPriority        = 0;
     nvic.NVIC_IRQChannelCmd                = ENABLE;
@@ -106,12 +107,9 @@ static void System_Init(void)
     BSP_TIM3_Init_1Minute();
     PRINT("[INIT] BSP TIM3  : OK\r\n");
 
-    /*
-     * TODO: Them cac driver after co source:
-     *   DRV_RTC_Init();     → DS1307 RTC
-     *   DRV_EEPROM_Init();  → AT24C64
-     *   DRV_Button_Init();  → Debounce buttons
-     */
+    /* 8. Daisy-chain Interlock Manager */
+    APP_Interlock_Init();
+    PRINT("[INIT] Interlock : OK (PC14 In, PA9 Out)\r\n");
 }
 
 /*============================================================================
@@ -127,6 +125,9 @@ int main(void)
     /* Vong lap main */
     while (1)
     {
+        /* Always process interlock daisy chain (pass-through / state) */
+        APP_Interlock_Run();
+
         if (!APP_Boot_IsDone()) {
             /* Currently trong sequence boot */
             APP_Boot_Run();

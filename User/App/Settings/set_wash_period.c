@@ -23,6 +23,7 @@
  *****************************************************************************/
 #include "set_wash_period.h"
 #include "App/Data/data_store.h"
+#include "BSP/bsp_gpio.h"
 #include "Drivers/drv_display.h"
 #include "debug.h"
 
@@ -92,6 +93,7 @@ void Set_WashPeriod_Run(BtnAction_t *actions) {
       DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
       Data_SetWashPeriod(s_days);
       PRINT("[SET_PERIOD] Saved: -%02d days\r\n", s_days);
+      APP_Settings_SetNavMode();
       break;
     }
     prv_UpdateDisplay();
@@ -131,8 +133,8 @@ void Set_WashPeriod_Run(BtnAction_t *actions) {
 void Set_WashPeriod_Exit(void) {
   /* Tat LED9 va LED1 */
   GPIO_SetBits(GPIOA, LED9_PIN);
-  GPIO_SetBits(GPIOA, LED1_PIN);
-
+  GPIO_SetBits(GPIOC, LED1_PIN);
+  BSP_LED_AllOff();
   DRV_Display_Blank();
   DRV_Display_SetBlink(0x0F, 0);
   s_state = PERIOD_SHOW;

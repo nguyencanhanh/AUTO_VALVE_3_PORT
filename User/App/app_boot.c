@@ -10,7 +10,9 @@
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_buzzer.h"
 #include "Drivers/drv_ds1307.h"
+#include "Drivers/drv_pos_sensor.h"
 #include "App/Data/data_store.h"
+#include "App/app_error.h"
 #include <stdio.h> /* For printf */
 
 /*============================================================================
@@ -19,7 +21,43 @@
 static AppBootState_t s_state = APP_BOOT_B1_BIP_LONG;
 static u32            s_timer = 0;
 static u8             s_done  = 0;
+static u8             s_scan_motor_running = 0;
+static ValvePosition_t s_boot_target_position = VALVE_POS_1;
 u8                    previous_day;
+
+#define BOOT_SENSOR_NO_CHANGE_TIMEOUT_MS 30000u
+#define BOOT_SCAN_MAX_MS                 60000u
+
+static ValvePosition_t prv_GetBootTargetPosition(void)
+{
+    u8 phase = WASH_PHASE_IDLE;
+    u8 saved_remain = 0;
+    AppSettings_t *cfg = Data_GetSettings();
+    u8 total_cycles = (u8)(cfg->wash_count + 1u);
+
+    Data_LoadWashState(&phase, &saved_remain);
+
+    if (cfg->wash_count > 20u || phase > WASH_PHASE_FR ||
+        saved_remain > total_cycles) {
+        PRINT("[BOOT] Invalid wash state phase=%d remain=%d count=%d, clear\r\n",
+              phase, saved_remain, cfg->wash_count);
+        Data_ClearWashState();
+        return VALVE_POS_1;
+    }
+
+    if (phase == WASH_PHASE_BW) {
+        if (saved_remain >= total_cycles) {
+            return VALVE_POS_1;
+        }
+        return VALVE_POS_2;
+    }
+    if (phase == WASH_PHASE_FR) {
+        return VALVE_POS_3;
+    }
+
+    Data_ClearWashState();
+    return VALVE_POS_1;
+}
 
 /*============================================================================
  * APP_Boot_Start - Start step B1a
@@ -29,6 +67,7 @@ void APP_Boot_Start(void)
     s_state = APP_BOOT_B1_BIP_LONG;
     s_timer = BSP_GetTick();
     s_done  = 0;
+    s_scan_motor_running = 0;
 
     /* Initial safe state */
     DS1307_Init();
@@ -108,8 +147,14 @@ void APP_Boot_Run(void)
         if (elapsed >= BOOT_PRODUCT_MS) {
             /* STEP 3: INITIAL FUNCTION SCAN */
             /* Display -00- during scan */
-            PRINT("[BOOT] B3: Initial scan function (-00-)\r\n");
+            s_boot_target_position = prv_GetBootTargetPosition();
+            PRINT("[BOOT] B3: Initial scan function (-00-), target=%d\r\n",
+                  s_boot_target_position);
             DRV_Display_Text(0x11, 0x00, 0x00, 0x11);
+            DRV_PosSensor_SetPosition(VALVE_POS_UNKNOWN);
+            DRV_PosSensor_ResetChangeTimer();
+            BSP_Motor_On();
+            s_scan_motor_running = 1;
             s_state = APP_BOOT_B3_SCAN;
             s_timer = BSP_GetTick();
         }
@@ -119,18 +164,43 @@ void APP_Boot_Run(void)
      * STEP 3: Run and scan position (-00-)
      *-----------------------------------------------------------------*/
     case APP_BOOT_B3_SCAN:
-        /* TODO: Insert logic to read actual position sensor here */
-        /* Temporarily simulate function scan completion after BOOT_SCAN_MS */
-        if (elapsed >= BOOT_SCAN_MS) {
-            PRINT("[BOOT] DONE: Boot sequence completed!\r\n");
+        DRV_PosSensor_Process();
+
+        if (DRV_PosSensor_GetCurrentPosition() == s_boot_target_position) {
+            BSP_Motor_Off();
+            s_scan_motor_running = 0;
+            PRINT("[BOOT] DONE: Initial scan found target position=%d\r\n",
+                  s_boot_target_position);
             s_state = APP_BOOT_DONE;
             s_done  = 1;
-            /* Scan completed -> boot sequence finished -> idle screen */
             DRV_Display_Text(0x11, 0x00, 0x00, 0x11);
+        } else if (elapsed >= BOOT_SCAN_MAX_MS) {
+            BSP_Motor_Off();
+            s_scan_motor_running = 0;
+            APP_Error_Set(ERR_VALVE_SLOW);
+            PRINT("[BOOT] ERROR: Initial scan max timeout target=%d! E3\r\n",
+                  s_boot_target_position);
+            s_state = APP_BOOT_DONE;
+            s_done  = 1;
+        } else if (s_scan_motor_running) {
+            u32 no_change_ms = DRV_PosSensor_GetTimeSinceLastChange();
+            if (no_change_ms >= BOOT_SENSOR_NO_CHANGE_TIMEOUT_MS) {
+                BSP_Motor_Off();
+                s_scan_motor_running = 0;
+                APP_Error_Set(ERR_VALVE_SLOW);
+                PRINT("[BOOT] ERROR: Sensor no change %dms during initial scan! E3\r\n",
+                      (int)no_change_ms);
+                s_state = APP_BOOT_DONE;
+                s_done  = 1;
+            }
         }
         break;
 
     default:
+        if (s_scan_motor_running) {
+            BSP_Motor_Off();
+            s_scan_motor_running = 0;
+        }
         s_done = 1;
         break;
     }

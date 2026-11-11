@@ -30,9 +30,9 @@ typedef enum {
 
 typedef enum {
     BTN_IDX_MENU = 0,       /* ENTER / PA15 */
-    BTN_IDX_UP,             /* UP    / PA16 */
+    BTN_IDX_UP,             /* UP    / PA18 */
     BTN_IDX_DOWN,           /* DOWN  / PA17 */
-    BTN_IDX_SELECT,         /* BACK  / PA18 */
+    BTN_IDX_SELECT,         /* BACK  / PA16 */
     BTN_IDX_COUNT
 } BtnIdx_t;
 
@@ -59,5 +59,7 @@ void APP_Settings_Exit(void);
 
 /* Returns 1 when settings is actively controlling the display (NAV or EDIT) */
 u8 APP_Settings_IsActive(void);
+
+void APP_Settings_SetNavMode(void);
 
 #endif /* __APP_SETTINGS_H */

@@ -38,31 +38,60 @@ void Disp_Backwash_Enter(void) {
   time_start_backwash = 0;
   s_motor_running = 0;  /* Reset trang thai motor tu chu ky truoc */
   cfg = Data_GetSettings();
-  u8 count = remain_count > 0 && remain_count < cfg->wash_count
-                   ? (cfg->wash_count - remain_count + 1)
-                   : (cfg->wash_count - remain_count);
-
-  DRV_Display_Text(0x0F, SEG_CHAR_DASH, count / 10, count % 10);
+  u8 total_cycles = (u8)(cfg->wash_count + 1u);
 
   DRV_Display_ResetBlinkCount();
-  if (remain_count >= cfg->wash_count) {
+  GPIO_ResetBits(GPIOC, LED2_PIN);  /* Active LOW (PC6) */
+  GPIO_ResetBits(GPIOA, LED12_PIN); /* Active LOW */
+
+  /* Hoan thanh tat ca chu ky -> quay ve vi tri loc POS_1 */
+  if (remain_count >= total_cycles) {
     DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
+    if (DRV_PosSensor_GetCurrentPosition() == VALVE_POS_1) {
+      DRV_PosSensor_SetPosition(VALVE_POS_NEXT_STEP);
+      PRINT("[DISP_BW] Enter at POS1, finish return home\r\n");
+      return;
+    }
+    DRV_Display_Text(SEG_CHAR_DASH, 0x00, 0x00, SEG_CHAR_DASH);
     BSP_Motor_On();
     DRV_PosSensor_ResetChangeTimer();  /* Reset timer cam bien */
     s_motor_running = 1;
     return;
-  } else {
-    DRV_Display_SetBlink(0x0C, 1); /* Stop blink D3+D2 */
-    DRV_Display_SetBlink(0x03, 0); /* Blink D1+D0 (minute digits) */
   }
-  GPIO_ResetBits(GPIOA, LED2_PIN);  /* Active LOW */
-  GPIO_ResetBits(GPIOA, LED12_PIN); /* Active LOW */
-  PRINT("[DISP_BW] Enter\r\n");
+
+  /* Neu thoi gian suc nguoc = 0 -> bo qua buoc nay, chuyen sang Fast Rinse */
+  if (cfg->backwash_sec == 0u) {
+    DRV_Display_SetBlink(0x0F, 0);
+    Data_SaveWashState(WASH_PHASE_FR, remain_count);
+    DRV_PosSensor_SetPosition(VALVE_POS_NEXT_STEP);
+    PRINT("[DISP_BW] backwash_sec=0, skip to FR\r\n");
+    return;
+  }
+
+  /* Phuc hoi mat dien: van da dung san tai POS_2 -> bat dau dem nguoc ngay */
+  if (DRV_PosSensor_GetCurrentPosition() == VALVE_POS_2) {
+    DRV_Display_SetBlink(0x0F, 0);
+    DRV_Display_Text(0x02, SEG_CHAR_DASH, cfg->backwash_sec / 10, cfg->backwash_sec % 10);
+    Timer3_Start_1Minute();
+    DRV_PosSensor_SetPosition(VALVE_POS_STOP);
+    PRINT("[DISP_BW] Enter at POS2, start timer\r\n");
+    return;
+  }
+
+  /* Hien thi F-XX nhap nhay truoc khi quay den POS_2 */
+  u8 count = (remain_count > 0 && remain_count < total_cycles)
+                   ? (u8)(cfg->wash_count - remain_count + 1u)
+                   : (u8)(cfg->wash_count - remain_count);
+  DRV_Display_Text(0x0F, SEG_CHAR_DASH, count / 10, count % 10);
+  DRV_Display_SetBlink(0x0C, 1); /* Blink D1+D0 (count digits) */
+  DRV_Display_SetBlink(0x03, 0); /* Stop blink D3+D2 (F-) */
+  PRINT("[DISP_BW] Enter (F-%02d)\r\n", count);
 }
 
 void Disp_Backwash_Run(void) {
+  u8 total_cycles = (u8)(cfg->wash_count + 1u);
   DRV_PosSensor_Process();
-  if (remain_count >= cfg->wash_count) {
+  if (remain_count >= total_cycles) {
     if (DRV_PosSensor_GetCurrentPosition() == VALVE_POS_1) {
       BSP_Motor_Off();
       s_motor_running = 0;
@@ -81,7 +110,8 @@ void Disp_Backwash_Run(void) {
     }
     return;
   }
-  if (DRV_Display_GetBlinkCount() == 4) {
+  if (!s_motor_running && DRV_PosSensor_GetCurrentPosition() != VALVE_POS_STOP &&
+      DRV_Display_GetBlinkCount() >= 4) {
     DRV_Display_SetBlink(0x0F, 0); /* Stop all blink */
     BSP_Motor_On();
     DRV_PosSensor_ResetChangeTimer();  /* Reset timer cam bien */
@@ -100,13 +130,15 @@ void Disp_Backwash_Run(void) {
     s_motor_running = 0;  /* Motor tat, ngung theo doi */
     Timer3_Start_1Minute();
     DRV_PosSensor_SetPosition(VALVE_POS_STOP);
-    PRINT("[DISP_BW] Set position to 4\r\n");
+    PRINT("[DISP_BW] Set position to STOP\r\n");
   }
   if (DRV_PosSensor_GetCurrentPosition() == VALVE_POS_STOP) {
-    u8 t = cfg->backwash_sec - BSP_GetCountMinutes();
+    u16 elapsed_min = BSP_GetCountMinutes();
+    u8 t = (cfg->backwash_sec > elapsed_min) ? (u8)(cfg->backwash_sec - elapsed_min) : 0u;
     DRV_Display_Text(0x02, SEG_CHAR_DASH, t / 10, t % 10);
-    if (BSP_GetCountMinutes() == cfg->backwash_sec) {
+    if (elapsed_min >= cfg->backwash_sec) {
       Timer3_Stop();
+      Data_SaveWashState(WASH_PHASE_FR, remain_count);
       DRV_PosSensor_SetPosition(VALVE_POS_NEXT_STEP);
       PRINT("[DISP_BW] Set position to next step\r\n");
     }
@@ -130,9 +162,10 @@ void Disp_Backwash_Run(void) {
  * Disp_Backwash_Exit - Tat LED, xoa man hinh
  *============================================================================*/
 void Disp_Backwash_Exit(void) {
-  GPIO_SetBits(GPIOA, LED2_PIN);
+  GPIO_SetBits(GPIOC, LED2_PIN);
   GPIO_SetBits(GPIOA, LED12_PIN);
   DRV_Display_Blank();
+  BSP_LED_AllOff();
   BSP_ResetCountMinutes();
   PRINT("[DISP_BW] Exit\r\n");
 }

@@ -56,8 +56,8 @@ static uint8_t prv_FindNextError(uint8_t start)
 static void prv_ShowError(uint8_t err_idx)
 {
     uint8_t num = s_err_num[err_idx];
-    /* D3='E', D2='-', D1=blank, D0=so loi */
-    DRV_Display_Text(SEG_CHAR_BLANK, SEG_CHAR_BLANK, SEG_CHAR_E, num);
+    /* D3='-', D2='E', D1=so loi, D0='-' */
+    DRV_Display_Text(SEG_CHAR_DASH, SEG_CHAR_E, num, SEG_CHAR_DASH);
     /* Nhap nhay toan bo 4 digit */
     DRV_Display_SetBlink(0x0F, 1);
 }

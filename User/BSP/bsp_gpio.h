@@ -31,4 +31,8 @@ u8   BSP_Sensor_ReadPosition(void);   /* 1 = valve currently open */
 /* Button raw read (active LOW → return 1 when currently nhan) */
 u8   BSP_Button_ReadRaw(uint32_t pin);
 
+/* Interlock GPIO control (PC14 In, PA9 Out) */
+u8   BSP_Interlock_ReadInput(void);
+void BSP_Interlock_SetOutput(u8 busy);
+
 #endif /* __BSP_GPIO_H */

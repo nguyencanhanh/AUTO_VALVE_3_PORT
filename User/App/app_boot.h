@@ -7,7 +7,7 @@
  *  B1b [2s    → 10s]   : LED BAT, 7-seg ALL ON ~8s
  *  B1c [10s   → 11s]   : Beep don boot ~1s
  *  B2  [11s   → 13s]   : Display product code "71P1"
- *  B3  [13s   → 14.5s] : Scan function display "-00-"
+ *  B3  [13s   → scan done] : Quay motor do ve vi tri loc, display "-00-"
  *  DONE                 : Switch sang screen cho (HH:MM)
  *****************************************************************************/
 #ifndef __APP_BOOT_H

@@ -45,7 +45,7 @@ void BSP_GPIO_Init(void) {
   g.GPIO_Mode = GPIO_Mode_IPU;
   GPIO_Init(BTN_MENU_PORT, &g);
 
-  /* Sensors: PA6 (flow) → Input Pull-Up */
+  /* Sensors: PA8 (flow) → Input Pull-Up */
   g.GPIO_Pin = FLOW_PIN;
   g.GPIO_Mode = GPIO_Mode_IPU;
   GPIO_Init(GPIOA, &g);
@@ -87,6 +87,24 @@ void BSP_GPIO_Init(void) {
   GPIO_Init(GPIOC, &g);
   GPIO_ResetBits(GPIOC, MOTOR_PIN | PUMP_PIN); /* Relay OFF = valve close */
 
+  /* ----------------------------------------------------------------
+   * INTERLOCK - PC14 (Input), PA9 (Output Push-Pull)
+   * ---------------------------------------------------------------- */
+#if (INTERLOCK_BUSY_LEVEL == 1)
+  g.GPIO_Pin = INTERLOCK_IN_PIN;
+  g.GPIO_Mode = GPIO_Mode_IPD;
+  GPIO_Init(INTERLOCK_IN_PORT, &g);
+#else
+  g.GPIO_Pin = INTERLOCK_IN_PIN;
+  g.GPIO_Mode = GPIO_Mode_IPU;
+  GPIO_Init(INTERLOCK_IN_PORT, &g);
+#endif
+
+  g.GPIO_Pin = INTERLOCK_OUT_PIN;
+  g.GPIO_Mode = GPIO_Mode_Out_PP;
+  g.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(INTERLOCK_OUT_PORT, &g);
+  BSP_Interlock_SetOutput(0u); /* Initial state: IDLE */
 
 }
 
@@ -110,11 +128,25 @@ void BSP_Buzzer_On(void) { GPIO_SetBits(BUZZER_PORT, BUZZER_PIN); }
 
 void BSP_Buzzer_Off(void) { GPIO_ResetBits(BUZZER_PORT, BUZZER_PIN); }
 
+#include "App/Data/data_store.h"
+#include "App/app_home.h"
+
 /*============================================================================
  * Relay Control
  *============================================================================*/
-void BSP_Motor_On(void) { GPIO_SetBits(MOTOR_PORT, MOTOR_PIN); }
-void BSP_Motor_Off(void) { GPIO_ResetBits(MOTOR_PORT, MOTOR_PIN); }
+void BSP_Motor_On(void) {
+  GPIO_SetBits(MOTOR_PORT, MOTOR_PIN);
+  if (Data_GetSettings()->relay_mode == 1 && APP_Home_IsWashing()) {
+    BSP_Pump_On();
+  }
+}
+
+void BSP_Motor_Off(void) {
+  GPIO_ResetBits(MOTOR_PORT, MOTOR_PIN);
+  if (Data_GetSettings()->relay_mode == 1) {
+    BSP_Pump_Off();
+  }
+}
 void BSP_Pump_On(void) { GPIO_SetBits(PUMP_PORT, PUMP_PIN); }
 void BSP_Pump_Off(void) { GPIO_ResetBits(PUMP_PORT, PUMP_PIN); }
 
@@ -127,4 +159,32 @@ u8 BSP_Sensor_ReadPosition(void) {
 
 u8 BSP_Button_ReadRaw(uint32_t pin) {
   return (GPIO_ReadInputDataBit(BTN_MENU_PORT, pin) == Bit_RESET) ? 1u : 0u;
+}
+
+/*============================================================================
+ * Interlock GPIO Control (PC14 Input, PA9 Output)
+ *============================================================================*/
+u8 BSP_Interlock_ReadInput(void) {
+  uint8_t bit = GPIO_ReadInputDataBit(INTERLOCK_IN_PORT, INTERLOCK_IN_PIN);
+#if (INTERLOCK_BUSY_LEVEL == 1)
+  return (bit == Bit_SET) ? 1u : 0u;
+#else
+  return (bit == Bit_RESET) ? 1u : 0u;
+#endif
+}
+
+void BSP_Interlock_SetOutput(u8 busy) {
+#if (INTERLOCK_BUSY_LEVEL == 1)
+  if (busy) {
+    GPIO_SetBits(INTERLOCK_OUT_PORT, INTERLOCK_OUT_PIN);
+  } else {
+    GPIO_ResetBits(INTERLOCK_OUT_PORT, INTERLOCK_OUT_PIN);
+  }
+#else
+  if (busy) {
+    GPIO_ResetBits(INTERLOCK_OUT_PORT, INTERLOCK_OUT_PIN);
+  } else {
+    GPIO_SetBits(INTERLOCK_OUT_PORT, INTERLOCK_OUT_PIN);
+  }
+#endif
 }
